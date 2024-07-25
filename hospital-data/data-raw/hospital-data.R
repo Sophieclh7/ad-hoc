@@ -9,6 +9,7 @@ library(dplyr)
 # ---- Load ward names dataset ----
 #Scrape URL
 #Source: https://www.england.nhs.uk/publication/care-hours-per-patient-day-chppd-data/
+#Some UK hospitals don't have wards as only inpatient hospitals have wards
 #Ward name dataset
 url <- "https://www.england.nhs.uk/wp-content/uploads/2021/02/nhs-england-ward-level-chppd-feb-2024.xlsx"
 
