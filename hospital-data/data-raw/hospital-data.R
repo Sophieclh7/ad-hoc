@@ -116,4 +116,15 @@ trust_data <- trust_data |>
 na_df <- trust_data |>
   filter(is.na(brc_area))
 
-write_csv(trust_data, "hospital-data/data/trust-ward.csv")
+# ---- Final dataset ----
+#Reduce columns and rename
+trust_ward_data <- trust_data |>
+  dplyr::select(-"Site Name") |>
+  rename(
+    "Hospital Name" = `Organisation Name.y`,
+    "Hospital Code" = `ODS Code`,
+    "BRC Area" = `brc_area`,
+  )
+
+# ---- Save dataset as csv ----
+write_csv(trust_ward_data, "hospital-data/data/trust-ward.csv")
