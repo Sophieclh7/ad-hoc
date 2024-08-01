@@ -28,21 +28,21 @@ contact_data <- contact_data |>
 
 # ---- Load postcode and ltla file ----
 #Source: https://www.arcgis.com/sharing/rest/content/items/bc8f6d1f6ee64111b6a59b22c6605f3b/data
-# Define the URL and the destination file path
+#Define URL and destination file path
 url <- "https://www.arcgis.com/sharing/rest/content/items/bc8f6d1f6ee64111b6a59b22c6605f3b/data"
 temp_dir <- tempdir()
 destfile <- file.path(temp_dir, "dataset.zip")
 
-# Download the file
+#Download the file
 download.file(url, destfile)
 
-# Define the path to unzip the contents into the temporary directory
+#Define path to unzip contents into temporary directory
 unzip_dir <- file.path(temp_dir, "dataset")
 
-# Unzip the downloaded file
+#Unzip downloaded file
 unzip(destfile, exdir = unzip_dir)
 
-# Load the dataset CSV file
+#Load dataset CSV file
 csv_file_path <- file.path(unzip_dir, "PCD_OA21_LSOA21_MSOA21_LTLA22_UTLA22_CAUTH22_NOV23_UK_LU_v2.csv")
 postcodes_data <- read.csv(csv_file_path)
 
@@ -64,16 +64,16 @@ postcode_regions_df <- left_join(postcode_join, regions_df, by = "ltla21_code", 
 
 # ---- Load site code and postcode file
 #Source: https://digital.nhs.uk/services/organisation-data-service/export-data-files/csv-downloads/other-nhs-organisations
-# Define the URL and temporary file paths
+#Define URL and temporary file paths
 url <- "https://files.digital.nhs.uk/assets/ods/current/etrust.zip"
 temp_zip <- tempfile(fileext = ".zip")
 temp_dir <- tempdir()
 
-# Download and unzip the ZIP file
+#Download and unzip ZIP file
 GET(url, write_disk(temp_zip))
 unzip(temp_zip, exdir = temp_dir)
 
-# List and read the first CSV file in the directory
+#List and read first CSV file in directory
 csv_file <- list.files(temp_dir, pattern = "\\.csv$", full.names = TRUE)[1]
 if (is.na(csv_file)) {
   stop("No CSV files found in the ZIP archive.")
