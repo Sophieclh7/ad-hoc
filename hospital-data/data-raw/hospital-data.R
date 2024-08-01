@@ -5,6 +5,7 @@ library(httr)
 library(readr)
 library(utils)
 library(dplyr)
+library(geographr)
 
 # ---- Load ward names dataset ----
 #Scrape URL
@@ -25,28 +26,24 @@ contact_data <- read_excel("hospital-data/data/nhs_hospital_info.xlsx")
 contact_data <- contact_data |>
   arrange(`ODS Code`)
 
-# ---- Load geographr package ----
-library(remote)
-remotes::install_github("humaniverse/geographr")
-library(geographr)
-
-# ---- Load ltla and trusts lookup ----
-data("lookup_nhs_trusts22_ltla21", package = "geographr")
-
 # ---- Load postcode and ltla file ----
 #Source: https://www.arcgis.com/sharing/rest/content/items/bc8f6d1f6ee64111b6a59b22c6605f3b/data
 # Define the URL and the destination file path
 url <- "https://www.arcgis.com/sharing/rest/content/items/bc8f6d1f6ee64111b6a59b22c6605f3b/data"
-destfile <- "dataset.zip"
+temp_dir <- tempdir()
+destfile <- file.path(temp_dir, "dataset.zip")
 
-#Download the file
+# Download the file
 download.file(url, destfile)
 
-#Unzip the downloaded file
-unzip(destfile, exdir = "dataset")
+# Define the path to unzip the contents into the temporary directory
+unzip_dir <- file.path(temp_dir, "dataset")
 
-#Load dataset csv file
-csv_file_path <- "dataset/PCD_OA21_LSOA21_MSOA21_LTLA22_UTLA22_CAUTH22_NOV23_UK_LU_v2.csv"
+# Unzip the downloaded file
+unzip(destfile, exdir = unzip_dir)
+
+# Load the dataset CSV file
+csv_file_path <- file.path(unzip_dir, "PCD_OA21_LSOA21_MSOA21_LTLA22_UTLA22_CAUTH22_NOV23_UK_LU_v2.csv")
 postcodes_data <- read.csv(csv_file_path)
 
 #Rename postcode column
@@ -59,40 +56,35 @@ postcode_data <- postcodes_data |>
 postcode_join <- left_join(contact_data, postcode_data, by = "Postcode")
 
 #Get rid of duplicates
-regions_df <- lookup_ltla21_brc[!duplicated(lookup_ltla21_brc$ltla21_code), ]
+regions_df <- lookup_ltla21_brc %>% 
+  distinct(ltla21_code, brc_area, .keep_all = TRUE)
 
 # ---- Merge postcode join to BRC data using ltla code ----
 postcode_regions_df <- left_join(postcode_join, regions_df, by = "ltla21_code", relationship = "many-to-many")
 
 # ---- Load site code and postcode file
 #Source: https://digital.nhs.uk/services/organisation-data-service/export-data-files/csv-downloads/other-nhs-organisations
-#Define the URL and temporary file paths
+# Define the URL and temporary file paths
 url <- "https://files.digital.nhs.uk/assets/ods/current/etrust.zip"
 temp_zip <- tempfile(fileext = ".zip")
 temp_dir <- tempdir()
 
-# Download the ZIP file
+# Download and unzip the ZIP file
 GET(url, write_disk(temp_zip))
-
-# Unzip file to temporary directory
 unzip(temp_zip, exdir = temp_dir)
 
-# List files in the directory to identify the CSV file
-csv_files <- list.files(temp_dir, pattern = "\\.csv$", full.names = TRUE)
-
-# Check if CSV file found
-if (length(csv_files) == 0) {
+# List and read the first CSV file in the directory
+csv_file <- list.files(temp_dir, pattern = "\\.csv$", full.names = TRUE)[1]
+if (is.na(csv_file)) {
   stop("No CSV files found in the ZIP archive.")
 }
-
-# Read the CSV file
-site_data <- read.csv(csv_files[1])
+site_data <- read_csv(csv_file)
 
 # ---- Map postcodes to ward names ----
 #Rename site code and select only relevant columns before joining
 site_data <- site_data |>
   rename("Site Code" = `A0A1E`) |>
-  dplyr::select("Site Code", "AL10.8HR")
+  dplyr::select("Site Code", "AL10 8HR")
 ward_data <- ward_data |>
   dplyr::select("Organisation Name", "Site Name", "Site Code", "Ward Name")
 
@@ -103,10 +95,10 @@ site_join <- left_join(ward_data, site_data, by = "Site Code")
 #Rename column before join
 site_join <- site_join |>
   rename(
-    "Postcode" = `AL10.8HR`)
+    "Postcode" = `AL10 8HR`)
 
 #Join datasets
-trust_data <- left_join(site_join, merged_df, by = "Postcode", relationship = "many-to-many")
+trust_data <- left_join(site_join, postcode_regions_df, by = "Postcode", relationship = "many-to-many")
 
 #Keep only required columns
 trust_data <- trust_data |>
