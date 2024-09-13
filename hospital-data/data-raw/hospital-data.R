@@ -107,7 +107,7 @@ trust_data <- trust_data |>
 #To find hospitals with missing data
 #Some hospitals are in ward names dataset but not in hospital information dataset sent by NHS
 na_df <- trust_data |>
-  filter(is.na(brc_area))
+  filter(is.na(brc_area)) 
 
 # ---- Final dataset ----
 #Reduce columns and rename
